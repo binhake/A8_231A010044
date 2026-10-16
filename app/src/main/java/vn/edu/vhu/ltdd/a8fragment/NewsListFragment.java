@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 /** Danh sách tin. Bấm một tin → mở NewsDetailFragment và đẩy vào back stack. */
 public class NewsListFragment extends Fragment {
@@ -57,6 +58,11 @@ public class NewsListFragment extends Fragment {
             box.addView(b);
         }
 
+        // NC2: ViewModel dùng chung trong Activity, sống lâu hơn Fragment này
+        TinTucViewModel vm = new ViewModelProvider(requireActivity()).get(TinTucViewModel.class);
+        vm.getTinDaDoc().observe(getViewLifecycleOwner(), tieuDe ->
+                tvDaDoc.setText(getString(R.string.list_last_read, tieuDe)));
+
         // Lắng nghe kết quả do NewsDetailFragment gửi về.
         // Callback chỉ chạy khi Fragment này ở trạng thái STARTED → an toàn với View.
         getParentFragmentManager().setFragmentResultListener(
@@ -64,7 +70,7 @@ public class NewsListFragment extends Fragment {
                 (requestKey, bundle) -> {
                     String tieuDe = bundle.getString(NewsDetailFragment.KEY_TIEU_DE, "");
                     Log.d(TAG, "Nhận kết quả: đã đọc " + tieuDe);
-                    tvDaDoc.setText(getString(R.string.list_last_read, tieuDe));
+                    vm.setTinDaDoc(tieuDe);   // NC2: ghi vào ViewModel, observe ở trên tự cập nhật TextView
                 });
     }
 
@@ -72,6 +78,8 @@ public class NewsListFragment extends Fragment {
         NewsDetailFragment f = NewsDetailFragment.newInstance(TIEU_DE[viTri], NOI_DUNG[viTri]);
         getParentFragmentManager()
                 .beginTransaction()
+                // NC4: hiệu ứng vào/ra; hai tham số sau dùng khi bấm Back (popBackStack)
+                .setCustomAnimations(R.anim.slide_in, R.anim.fade_out, R.anim.fade_in, R.anim.slide_out)
                 .replace(R.id.fragmentContainer, f)
                 .addToBackStack("chi_tiet")   // có addToBackStack → bấm Back quay lại danh sách
                 .setReorderingAllowed(true)
